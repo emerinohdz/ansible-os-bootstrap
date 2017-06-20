@@ -1,0 +1,81 @@
+---
+- hosts: centos7-hosts
+  remote_user: root
+  vars:
+    users:
+      - root
+      - emerino
+    home_folders: 
+      - /root
+      - /home/emerino 
+  tasks:
+  - name: ensure normal user is created
+    register: userscreated
+    user:
+      name: emerino
+      state: present
+      groups: users,wheel
+      append: yes
+
+  - name: install base packages
+    register: baseinstalled
+    yum: 
+      name: 
+        - yum-cron
+        - zsh
+        - vim
+        - tmux
+        - mosh
+      state: latest
+    notify: 
+      - modify user shells
+
+  - name: copy root configuration files
+    when: baseinstalled
+    copy: src={{ item.src }} dest={{ item.dest }} owner=root group=root
+    with_items:
+        - { src: 'tmux.conf', dest: '/root/tmux.conf' }
+        - { src: 'zshrc', dest: '/root/.zshrc' }
+        - { src: 'vimrc', dest: '/root/.vimrc' }
+
+  - name: copy users configuration files
+    when: baseinstalled
+    copy: src={{ item.src }} dest={{ item.dest }} owner=emerino group=emerino
+    with_items:
+        - { src: 'tmux.conf', dest: '/home/emerino/.tmux.conf' }
+        - { src: 'zshrc', dest: '/home/emerino/.zshrc' }
+        - { src: 'vimrc', dest: '/home/emerino/.vimrc' }
+
+  - name: set authorized key for SSH access
+    when: userscreated
+    authorized_key: 
+      user: emerino
+      state: present
+      key: "{{ lookup('file', '/home/emerino/.ssh/id_rsa.pub') }}"
+
+  - name: ensure services are running
+    when: baseinstalled
+    systemd: name={{ item.service }} state=started enabled=true
+    with_items:
+        - { service: 'yum-cron' }
+        - { service: 'firewalld' }
+
+  - name: ensure needed mosh ports are opened
+    firewalld:
+      service: mosh
+      permanent: true
+      immediate: true
+      state: enabled
+
+  - name: ensure correct sudo privileges
+    lineinfile:
+      path: /etc/sudoers
+      state: present
+      regexp: '^%wheel\s'
+      line: '%wheel ALL=(ALL) NOPASSWD: ALL'
+      validate: 'visudo -cf %s'
+
+  handlers:
+  - name: modify user shells
+    shell: usermod {{ item }} -s /bin/zsh
+    with_items: "{{ users }}"
