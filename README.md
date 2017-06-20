@@ -1,3 +1,3 @@
 # OS Bootstraping Playbooks
 
-Ansible Playbooks for bootstraping linux OS installations.
+Ansible Playbooks for bootstraping OS installations.
