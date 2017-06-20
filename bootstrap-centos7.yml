@@ -41,7 +41,7 @@
     when: baseinstalled
     copy: src={{ item.src }} dest={{ item.dest }} owner=root group=root
     with_items:
-        - { src: 'tmux.conf', dest: '/root/tmux.conf' }
+        - { src: 'tmux.conf', dest: '/root/.tmux.conf' }
         - { src: 'zshrc', dest: '/root/.zshrc' }
         - { src: 'vimrc', dest: '/root/.vimrc' }
 
