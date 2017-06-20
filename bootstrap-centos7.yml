@@ -17,8 +17,15 @@
       groups: users,wheel
       append: yes
 
+  - name: ensure yum is up to date
+    register: yumupdated
+    yum:
+      name: "*"
+      state: latest
+
   - name: install base packages
     register: baseinstalled
+    when: yumupdated
     yum: 
       name: 
         - yum-cron
